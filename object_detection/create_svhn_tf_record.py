@@ -54,17 +54,19 @@ def convert_to_tf_record(name):
 				
 				with tf.gfile.GFile(path_image_file, 'rb') as fid:
 					encoded_img = fid.read()
-				encoded_jpg_io = io.BytesIO(encoded_jpg)
-				image = PIL.Image.open(encoded_jpg_io)
-				height, width = image.size
+				encoded_img_io = io.BytesIO(encoded_img)
+				image = Image.open(encoded_img_io)
+				width, height = image.size
 				key = hashlib.sha256(encoded_img).hexdigest()
 				
 				attrs = get_attrs(mat_file, index)				
 
-				xmin = np.array(attrs['left'])
-				ymin = np.array(attrs['top'])
-				xmax = xmin + np.array(attrs['width'])
-				ymax = ymin + np.array(attrs['height'])
+				xmin = np.array(attrs['left']) / width
+				ymin = np.array(attrs['top']) / height
+				xmax = xmin + np.array(attrs['width']) / width
+				ymax = ymin + np.array(attrs['height']) / height
+
+				print(filename, width, height, xmin, ymin, xmax, ymax)
 
 				classes = np.int0(attrs['label'])
 				classes[classes==10] = 0
@@ -82,10 +84,10 @@ def convert_to_tf_record(name):
 					'image/key/sha256': dataset_util.bytes_feature(key.encode('utf8')),
 					'image/encoded': dataset_util.bytes_feature(encoded_img),
 					'image/format': dataset_util.bytes_feature('png'.encode('utf8')),
-					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin/width),
-					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax/width),
-					'image/object/bbox/ymin': dataset_util.float_list_feature(ymin/height),
-					'image/object/bbox/ymax': dataset_util.float_list_feature(ymax/height),
+					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin),
+					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax),
+					'image/object/bbox/ymin': dataset_util.float_list_feature(ymin),
+					'image/object/bbox/ymax': dataset_util.float_list_feature(ymax),
 					'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
 					'image/object/class/label': dataset_util.int64_list_feature(classes),
 					'image/object/difficult': dataset_util.int64_list_feature(difficult),
