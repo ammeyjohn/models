@@ -49,10 +49,14 @@ def convert_to_tf_record(name):
 				name, _ = os.path.splitext(filename)
 				index = int(name) - 1
 
-				print("(%.2f%%) Processing image %s" % (i/total_files_count*100, filename))
+				if i % 100 == 0:
+					print("Image processed %.2f%%" % (i/total_files_count*100))
 				
 				with tf.gfile.GFile(path_image_file, 'rb') as fid:
 					encoded_img = fid.read()
+				encoded_jpg_io = io.BytesIO(encoded_jpg)
+				image = PIL.Image.open(encoded_jpg_io)
+				height, width = image.size
 				key = hashlib.sha256(encoded_img).hexdigest()
 				
 				attrs = get_attrs(mat_file, index)				
@@ -71,17 +75,17 @@ def convert_to_tf_record(name):
 				difficult.append(0)
 
 				example = tf.train.Example(features=tf.train.Features(feature={
-					'image/height': dataset_util.int64_feature(image.size[0]),
-					'image/width': dataset_util.int64_feature(image.size[1]),
+					'image/height': dataset_util.int64_feature(height),
+					'image/width': dataset_util.int64_feature(width),
 					'image/filename': dataset_util.bytes_feature(filename.encode('utf8')),
 					'image/source_id': dataset_util.bytes_feature(filename.encode('utf8')),
 					'image/key/sha256': dataset_util.bytes_feature(key.encode('utf8')),
 					'image/encoded': dataset_util.bytes_feature(encoded_img),
 					'image/format': dataset_util.bytes_feature('png'.encode('utf8')),
-					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin),
-					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax),
-					'image/object/bbox/ymin': dataset_util.float_list_feature(ymin),
-					'image/object/bbox/ymax': dataset_util.float_list_feature(ymax),
+					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin/width),
+					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax/width),
+					'image/object/bbox/ymin': dataset_util.float_list_feature(ymin/height),
+					'image/object/bbox/ymax': dataset_util.float_list_feature(ymax/height),
 					'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
 					'image/object/class/label': dataset_util.int64_list_feature(classes),
 					'image/object/difficult': dataset_util.int64_list_feature(difficult),
