@@ -1,4 +1,5 @@
 import os
+import io
 import numpy as np
 import h5py
 import hashlib
@@ -49,10 +50,10 @@ def convert_to_tf_record(name):
 				index = int(name) - 1
 
 				print("(%.2f%%) Processing image %s" % (i/total_files_count*100, filename))
-
-				image = Image.open(path_image_file)
-				encoded_image = np.array(image).tobytes()
-				key = hashlib.sha256(encoded_image).hexdigest()
+				
+				with tf.gfile.GFile(path_image_file, 'rb') as fid:
+					encoded_img = fid.read()
+				key = hashlib.sha256(encoded_img).hexdigest()
 				
 				attrs = get_attrs(mat_file, index)				
 
@@ -62,10 +63,7 @@ def convert_to_tf_record(name):
 				ymax = ymin + np.array(attrs['height'])
 
 				classes = np.int0(attrs['label'])
-				for i, c in enumerate(classes):
-					if c == 10:
-						classes[i] = 0
-
+				classes[classes==10] = 0
 				classes_text = [str(c).encode('utf8') for c in classes]
 				
 				truncated.append(1)
@@ -78,7 +76,7 @@ def convert_to_tf_record(name):
 					'image/filename': dataset_util.bytes_feature(filename.encode('utf8')),
 					'image/source_id': dataset_util.bytes_feature(filename.encode('utf8')),
 					'image/key/sha256': dataset_util.bytes_feature(key.encode('utf8')),
-					'image/encoded': dataset_util.bytes_feature(np.array(image).tobytes()),
+					'image/encoded': dataset_util.bytes_feature(encoded_img),
 					'image/format': dataset_util.bytes_feature('png'.encode('utf8')),
 					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin),
 					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax),
