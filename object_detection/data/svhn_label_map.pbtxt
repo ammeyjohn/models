@@ -1,9 +1,4 @@
 item {
-  id: 0
-  name: '0'
-}
-
-item {
   id: 1
   name: '1'
 }
@@ -46,4 +41,9 @@ item {
 item {
   id: 9
   name: '9'
+}
+
+item {
+  id: 10
+  name: '0'
 }
