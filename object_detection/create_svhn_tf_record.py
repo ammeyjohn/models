@@ -31,77 +31,77 @@ def get_attrs(digit_struct_mat_file, index):
 
 
 def convert_to_tf_record(name):
-	path_root_dir = os.path.join(FLAGS.data_dir, name)
-	path_mat_file = os.path.join(path_root_dir, 'digitStruct.mat')
-	path_output_file = os.path.join(FLAGS.output_dir, name + '.tfrecords')
+    path_root_dir = os.path.join(FLAGS.data_dir, name)
+    path_mat_file = os.path.join(path_root_dir, 'digitStruct.mat')
+    path_output_file = os.path.join(FLAGS.output_dir, name + '.record')
 
-	with tf.python_io.TFRecordWriter(path_output_file) as writer:
-		with h5py.File(path_mat_file, 'r') as mat_file:
-			path_image_files = tf.gfile.Glob(os.path.join(path_root_dir, '*.png'))
-			total_files_count = len(path_image_files)
+    with tf.python_io.TFRecordWriter(path_output_file) as writer:
+        with h5py.File(path_mat_file, 'r') as mat_file:
+            path_image_files = tf.gfile.Glob(
+                os.path.join(path_root_dir, '*.png'))
+            total_files_count = len(path_image_files)
 
-			truncated = []
-			poses = []
-			difficult = []
-			for i, path_image_file in enumerate(path_image_files):
+            truncated = []
+            poses = []
+            difficult = []
+            for i, path_image_file in enumerate(path_image_files):
 
-				filename = os.path.basename(path_image_file)
-				name, _ = os.path.splitext(filename)
-				index = int(name) - 1
+                filename = os.path.basename(path_image_file)
+                name, _ = os.path.splitext(filename)
+                index = int(name) - 1
 
-				if i % 100 == 0:
-					print("Image processed %.2f%%" % (i/total_files_count*100))
-				
-				with tf.gfile.GFile(path_image_file, 'rb') as fid:
-					encoded_img = fid.read()
-				encoded_img_io = io.BytesIO(encoded_img)
-				image = Image.open(encoded_img_io)
-				width, height = image.size
-				key = hashlib.sha256(encoded_img).hexdigest()
-				
-				attrs = get_attrs(mat_file, index)				
+                if i % 100 == 0:
+                    print("Image processed %.2f%%" %
+                          (i / total_files_count * 100))
 
-				xmin = np.array(attrs['left']) / width
-				ymin = np.array(attrs['top']) / height
-				xmax = xmin + np.array(attrs['width']) / width
-				ymax = ymin + np.array(attrs['height']) / height
+                with tf.gfile.GFile(path_image_file, 'rb') as fid:
+                    encoded_img = fid.read()
+                encoded_img_io = io.BytesIO(encoded_img)
+                image = Image.open(encoded_img_io)
+                width, height = image.size
+                key = hashlib.sha256(encoded_img).hexdigest()
 
-				print(filename, width, height, xmin, ymin, xmax, ymax)
+                attrs = get_attrs(mat_file, index)
 
-				classes = np.int0(attrs['label'])
-				classes[classes==10] = 0
-				classes_text = [str(c).encode('utf8') for c in classes]
-				
-				truncated.append(1)
-				poses.append('Unspecified'.encode('utf8'))
-				difficult.append(0)
+                xmin = np.array(attrs['left']) / width
+                ymin = np.array(attrs['top']) / height
+                xmax = (np.array(attrs['left']) + np.array(attrs['width'])) / width
+                ymax = (np.array(attrs['top']) + np.array(attrs['height'])) / height
 
-				example = tf.train.Example(features=tf.train.Features(feature={
-					'image/height': dataset_util.int64_feature(height),
-					'image/width': dataset_util.int64_feature(width),
-					'image/filename': dataset_util.bytes_feature(filename.encode('utf8')),
-					'image/source_id': dataset_util.bytes_feature(filename.encode('utf8')),
-					'image/key/sha256': dataset_util.bytes_feature(key.encode('utf8')),
-					'image/encoded': dataset_util.bytes_feature(encoded_img),
-					'image/format': dataset_util.bytes_feature('png'.encode('utf8')),
-					'image/object/bbox/xmin': dataset_util.float_list_feature(xmin),
-					'image/object/bbox/xmax': dataset_util.float_list_feature(xmax),
-					'image/object/bbox/ymin': dataset_util.float_list_feature(ymin),
-					'image/object/bbox/ymax': dataset_util.float_list_feature(ymax),
-					'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
-					'image/object/class/label': dataset_util.int64_list_feature(classes),
-					'image/object/difficult': dataset_util.int64_list_feature(difficult),
-					'image/object/truncated': dataset_util.int64_list_feature(truncated),
-					'image/object/view': dataset_util.bytes_list_feature(poses)
-				}))
+                classes = np.int0(attrs['label'])
+                classes_text = [str(c).encode('utf8') for c in classes]
 
-				writer.write(example.SerializeToString())	
+                l = len(classes)
+                truncated = [1] * l
+                poses = ['Unspecified'.encode('utf8')] * l
+                difficult = [0] * l
+
+                example = tf.train.Example(features=tf.train.Features(feature={
+                    'image/height': dataset_util.int64_feature(height),
+                    'image/width': dataset_util.int64_feature(width),
+                    'image/filename': dataset_util.bytes_feature(filename.encode('utf8')),
+                    'image/source_id': dataset_util.bytes_feature(filename.encode('utf8')),
+                    'image/key/sha256': dataset_util.bytes_feature(key.encode('utf8')),
+                    'image/encoded': dataset_util.bytes_feature(encoded_img),
+                    'image/format': dataset_util.bytes_feature('png'.encode('utf8')),
+                    'image/object/bbox/xmin': dataset_util.float_list_feature(xmin),
+                    'image/object/bbox/xmax': dataset_util.float_list_feature(xmax),
+                    'image/object/bbox/ymin': dataset_util.float_list_feature(ymin),
+                    'image/object/bbox/ymax': dataset_util.float_list_feature(ymax),
+                    'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
+                    'image/object/class/label': dataset_util.int64_list_feature(classes),
+                    'image/object/difficult': dataset_util.int64_list_feature(difficult),
+                    'image/object/truncated': dataset_util.int64_list_feature(truncated),
+                    'image/object/view': dataset_util.bytes_list_feature(poses)
+                }))
+
+                writer.write(example.SerializeToString())
 
 
 def main(_):
-	for name in ['train', 'test', 'extra']:
-		convert_to_tf_record(name)
+    for name in ['train', 'test']:
+        convert_to_tf_record(name)
 
 if __name__ == '__main__':
 
-	tf.app.run()
+    tf.app.run()
