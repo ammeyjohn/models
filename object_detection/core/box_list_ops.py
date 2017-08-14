@@ -794,8 +794,12 @@ def to_absolute_coordinates(boxlist, height, width,
     height = tf.cast(height, tf.float32)
     width = tf.cast(width, tf.float32)
 
+
     # Ensure range of input boxes is correct.
     if check_range:
+      box_item = boxlist.get()
+      tf.Print(box_item, [box_item], "to_absolute_coordinates::")
+
       box_maximum = tf.reduce_max(boxlist.get())
       max_assert = tf.Assert(tf.greater_equal(1.01, box_maximum),
                              ['maximum box coordinate value is larger '

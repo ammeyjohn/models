@@ -60,7 +60,7 @@ from utils import visualization_utils as vis_util
 # DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_CKPT = 'data/svhn_inference_graph_123279.pb'
+PATH_TO_CKPT = 'data/svhn_inference_graph_13377.pb'
 
 # List of the strings that is used to add correct label for each box.
 PATH_TO_LABELS = os.path.join('data', 'svhn_label_map.pbtxt')
@@ -178,7 +178,8 @@ with detection_graph.as_default():
       plt.subplot(5, 4, i+1)
       plt.imshow(image_np)
 
-      box_count += len(boxes)
+      if boxes != None:
+        box_count += len(boxes)
 
 print(box_count)
 

@@ -50,7 +50,7 @@ def convert_to_tf_record(name):
                 name, _ = os.path.splitext(filename)
                 index = int(name) - 1
 
-                if i % 100 == 0:
+                if i % 1000 == 0:
                     print("Image processed %.2f%%" %
                           (i / total_files_count * 100))
 
